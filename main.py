@@ -65,11 +65,16 @@ def is_joined(user_id):
             user_id
         )
 
-        return member.status in [
-            "member",
+        print(member.status)
+
+        if member.status in [
+            "creator",
             "administrator",
-            "creator"
-        ]
+            "member"
+        ]:
+            return True
+
+        return False
 
     except Exception as e:
 
@@ -89,50 +94,53 @@ def join_message(chat_id):
 """
     )
 
-def fast_send(chat_id, data):
+def fast_send(chat_id, files):
 
-    caption = data.get("caption", "")
+    sent_count = 0
 
     try:
 
-        if data["type"] == "document":
+        for data in files:
 
-            bot.send_document(
-                chat_id,
-                data["file_id"],
-                caption=caption,
-                disable_content_type_detection=True,
-                timeout=120
-            )
+            caption = data.get("caption", "")
 
-        elif data["type"] == "video":
+            if data["type"] == "document":
 
-            bot.send_video(
-                chat_id,
-                data["file_id"],
-                caption=caption,
-                supports_streaming=True,
-                timeout=120
-            )
+                bot.send_document(
+                    chat_id,
+                    data["file_id"],
+                    caption=caption,
+                    disable_content_type_detection=True,
+                    timeout=120
+                )
 
-        elif data["type"] == "audio":
+            elif data["type"] == "video":
 
-            bot.send_audio(
-                chat_id,
-                data["file_id"],
-                caption=caption,
-                timeout=120
-            )
+                bot.send_video(
+                    chat_id,
+                    data["file_id"],
+                    caption=caption,
+                    supports_streaming=True,
+                    timeout=120
+                )
+
+            elif data["type"] == "audio":
+
+                bot.send_audio(
+                    chat_id,
+                    data["file_id"],
+                    caption=caption,
+                    timeout=120
+                )
+
+            sent_count += 1
 
         bot.send_message(
             chat_id,
             f"""
-✅ File Sent Successfully
+✅ {sent_count} File Sent Successfully
 
 🎬 Thank You For Using Our Anime Bot
-
-📢 Channel
-{CHANNEL_LINK}
 """
         )
 
@@ -171,7 +179,7 @@ def start(message):
 
         keyword = normalize(keyword)
 
-        found = False
+        matched_files = []
 
         for file_id, data in files_db.items():
 
@@ -179,14 +187,16 @@ def start(message):
 
             if keyword in anime_name or anime_name in keyword:
 
-                found = True
+                matched_files.append(data)
 
-                fast_send(
-                    message.chat.id,
-                    data
-                )
+        if matched_files:
 
-        if not found:
+            fast_send(
+                message.chat.id,
+                matched_files
+            )
+
+        else:
 
             bot.send_message(
                 message.chat.id,
