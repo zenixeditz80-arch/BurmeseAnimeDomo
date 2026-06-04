@@ -3,6 +3,7 @@ import json
 import os
 import base64
 import time
+import threading
 
 TOKEN = "8772869279:AAEu5CEhxUGxOcrv_btL1RqNDmnSMbL6U3Y"
 ADMIN_ID = 8758830915
@@ -69,36 +70,75 @@ def join_message(chat_id):
 
 # ---------------- SEND FILES ---------------- #
 
+
+def auto_delete(chat_id, message_ids):
+    time.sleep(300)  # 5 Minutes
+
+    for msg_id in message_ids:
+        try:
+            bot.delete_message(chat_id, msg_id)
+        except:
+            pass
+
 def fast_send(chat_id, files):
     sent_count = 0
+    sent_messages = []
 
     try:
         for data in files:
             caption = data.get("caption", "")
 
             if data["type"] == "document":
-                bot.send_document(chat_id, data["file_id"], caption=caption)
+                msg = bot.send_document(
+                    chat_id,
+                    data["file_id"],
+                    caption=caption
+                )
 
             elif data["type"] == "video":
-                bot.send_video(chat_id, data["file_id"], caption=caption, supports_streaming=True)
+                msg = bot.send_video(
+                    chat_id,
+                    data["file_id"],
+                    caption=caption,
+                    supports_streaming=True
+                )
 
             elif data["type"] == "audio":
-                bot.send_audio(chat_id, data["file_id"], caption=caption)
+                msg = bot.send_audio(
+                    chat_id,
+                    data["file_id"],
+                    caption=caption
+                )
 
+            sent_messages.append(msg.message_id)
             sent_count += 1
 
-        bot.send_message(
+        warning = bot.send_message(
             chat_id,
             f"""
 ✅ {sent_count} File Sent Successfully
 
 🎬 Thank You For Using Our Anime Bot
+
+⚠️ 5 မိနစ်ကြာရင်
+(မူပိုင်ခွင့်ပြဿနာများကြောင့်)
+အလိုအလျောက် ဖျက်ပါမည်။
+
+📌 ကျေးဇူးပြု၍ ဤဖိုင်များအားလုံးကို
+Saved Messages သို့ Forward လုပ်ထားပါ။
 """
         )
 
+        sent_messages.append(warning.message_id)
+
+        threading.Thread(
+            target=auto_delete,
+            args=(chat_id, sent_messages),
+            daemon=True
+        ).start()
+
     except Exception as e:
         print(f"Send Error: {e}")
-
 # ---------------- START ---------------- #
 
 @bot.message_handler(commands=['start'])
@@ -308,3 +348,4 @@ while True:
     except Exception as e:
         print(f"Error: {e}")
         time.sleep(5)
+    
